@@ -1,0 +1,13 @@
+VERSION='7.0'
+DOWNLOAD="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gc-$VERSION.tar.gz"
+MD5SUM='3645ccf5f32ebb27d99b27b0d29e9c38'
+
+build() {
+  try cd "gc-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR" --disable-gcj-support
+  try make
+  try make install
+  cd ..
+  rm -rf "gc-$VERSION"
+  rm -rf "$INSTALL_DIR/share/gc"
+}

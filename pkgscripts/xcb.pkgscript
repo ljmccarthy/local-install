@@ -1,0 +1,12 @@
+VERSION='1.1'
+DOWNLOAD="http://xcb.freedesktop.org/dist/libxcb-$VERSION.tar.bz2"
+MD5SUM='9310b02433273d75d42f10da3c7455aa'
+
+build() {
+  try cd "libxcb-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR"
+  try make
+  try make install
+  cd ..
+  rm -rf "libxcb-$VERSION"
+}

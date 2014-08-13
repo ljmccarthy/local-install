@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+# local-install
+#   2008-05-27 Luke McCarthy <luke@iogopro.co.uk>
+#
+# Simple script to download, build and install packages to a local user directory.
+#
+# The following environment variables can be defined:
+#   DOWNLOAD_DIR - Directory to store downloaded archives
+#   BUILD_DIR    - Directory to build the source
+#   INSTALL_DIR  - Root installation directory
+#
+# pkgscript files should define:
+#   DOWNLOAD - URL to download source distribution archive
+#   MD5SUM   - MD5 checksum of archive
+#   build()  - Build function (executed in $BUILD_DIR)
+
+try() {
+  eval "$@"
+  local err=$?
+  if [ $err -ne 0 ]; then
+   echo "*** Error: Command failed: $@"
+   exit $err
+  fi
+  return 0
+}
+
+require() {
+  local cmd
+  for cmd in $*; do
+    which "$cmd" 1>/dev/null 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echo "*** Error: Required program missing: $cmd"
+      exit 1
+    fi
+  done
+}
+
+extract() {
+  case "$1" in
+  *.tar)
+    require tar
+    try tar xf "$1";;
+  *.tar.gz|*.tgz)
+    require tar
+    try tar xzf "$1";;
+  *.tar.bz2)
+    require tar
+    try tar xjf "$1";;
+  *.zip)
+    require unzip
+    try unzip "$1";;
+  *.rar)
+    require unrar
+    try unrar x "$1";;
+  *.7z)
+    require 7z
+    try 7z x "$1";;
+  *)
+    echo "*** Error: Unknown archive type: $1"
+    exit 1;;
+  esac
+}
+
+if [ $# -ne 1 ]; then
+  echo "usage: $0 PKGSCRIPT"
+  exit 1
+fi
+
+PKGSCRIPT="$1"
+
+# Default directories
+if [ -z "$DOWNLOAD_DIR" ]; then
+  DOWNLOAD_DIR="`pwd`/download"
+fi
+if [ -z "$BUILD_DIR" ]; then
+  BUILD_DIR="`pwd`/build"
+fi
+if [ -z "$INSTALL_DIR" ]; then
+  INSTALL_DIR="`pwd`/root"
+fi
+
+export PATH="${INSTALL_DIR}/bin:${PATH}"
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+export PKG_CONFIG_PATH="${INSTALL_DIR}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+
+require wget md5sum
+
+try mkdir -p "$DOWNLOAD_DIR"
+try mkdir -p "$BUILD_DIR"
+try mkdir -p "$INSTALL_DIR"
+
+# Convert to absolute paths
+DOWNLOAD_DIR=`cd "$DOWNLOAD_DIR"; pwd`
+BUILD_DIR=`cd "$BUILD_DIR"; pwd`
+INSTALL_DIR=`cd "$INSTALL_DIR"; pwd`
+
+echo "Download Dir: $DOWNLOAD_DIR"
+echo "Build Dir:    $BUILD_DIR"
+echo "Install Dir:  $INSTALL_DIR"
+
+try source "$PKGSCRIPT"
+
+if [ -z "$DOWNLOAD" ]; then
+  echo "*** Error: DOWNLOAD not defined"
+fi
+
+ARCHIVE="$DOWNLOAD_DIR/$(basename $DOWNLOAD)"
+
+# Download archive if necessary
+test -f "$ARCHIVE" || try wget "$DOWNLOAD" -O "$ARCHIVE"
+
+# Verify MD5 checksum
+if [ "$MD5SUM" ]; then
+  if [ $MD5SUM != `md5sum "$ARCHIVE" | cut -d' ' -f1` ]; then
+    echo "*** Error: MD5 checksum invalid: $ARCHIVE"
+    exit 1
+  fi
+else
+  echo "Warning: MD5SUM not defined"
+fi
+
+# Extract and build
+try cd "$BUILD_DIR"
+extract "$ARCHIVE"
+build
+
+# Clean up unwanted files
+rm -rf "$INSTALL_DIR"/lib/*.la
+rm -rf "$INSTALL_DIR"/{,share}{*doc*,info,man}
+
+# Strip binaries
+for f in "$INSTALL_DIR"/bin/*; do
+  echo "Stripping binary: $f"
+  strip -s -R .comment "$f"
+done
+
+# Strip libraries
+for f in "$INSTALL_DIR"/lib/*.{a,so}; do
+  echo "Stripping library: $f"
+  strip -x -R .comment "$f"
+done
+
+echo "Build successful"

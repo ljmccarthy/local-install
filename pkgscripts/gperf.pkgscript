@@ -1,0 +1,12 @@
+VERSION='3.0.3'
+DOWNLOAD="ftp://ftp.gnu.org/gnu/gperf/gperf-${VERSION}.tar.gz"
+MD5SUM='cc20e58975a38075440423c8fb85fd00'
+
+build() {
+  try cd "gperf-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR"
+  try make
+  try make install
+  cd ..
+  rm -rf "gperf-$VERSION"
+}

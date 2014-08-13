@@ -1,0 +1,13 @@
+VERSION='1.6.4'
+DOWNLOAD="http://cairographics.org/releases/cairo-$VERSION.tar.gz"
+MD5SUM='a198d509f9e3a35b78de8bb02174ebb9'
+
+build() {
+  try cd "cairo-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR" --enable-xcb --disable-xlib
+  try make
+  try make install
+  cd ..
+  rm -rf "cairo-$VERSION"
+  rm -rf "$INSTALL_DIR/share/gtk-doc/html/cairo"
+}

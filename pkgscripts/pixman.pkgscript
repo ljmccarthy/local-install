@@ -1,0 +1,12 @@
+VERSION='0.10.0'
+DOWNLOAD="http://cairographics.org/releases/pixman-${VERSION}.tar.gz"
+MD5SUM='41804ac38025102dcc9891dfd4a3d105'
+
+build() {
+  try cd "pixman-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR"
+  try make
+  try make install
+  cd ..
+  rm -rf "pixman-$VERSION"
+}

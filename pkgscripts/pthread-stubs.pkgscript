@@ -1,0 +1,12 @@
+VERSION='0.1'
+DOWNLOAD="http://xcb.freedesktop.org/dist/libpthread-stubs-$VERSION.tar.bz2"
+MD5SUM='774eabaf33440d534efe108ef9130a7d'
+
+build() {
+  try cd "libpthread-stubs-$VERSION"
+  try ./configure --prefix="$INSTALL_DIR"
+  try make
+  try make install
+  cd ..
+  rm -rf "libpthread-stubs-$VERSION"
+}
